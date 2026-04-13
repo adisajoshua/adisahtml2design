@@ -1,0 +1,14 @@
+{
+  "name": "Adisa HTML to Expert Design v1.12",
+  "id": "adisa-html-to-expert-design",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "ui": "src/ui.html",
+  "networkAccess": {
+    "allowedDomains": ["*"],
+    "reasoning": "Required to capture and import designs from any website selected by the user."
+  }
+}

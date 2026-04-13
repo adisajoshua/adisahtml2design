@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #111; color: #fff; font-family: 'Inter', sans-serif; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; margin: 0; }
+        h2 { font-size: 13px; color: #EB00FF; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
+        textarea { flex-grow: 1; background: #222; border: 1px solid #333; color: #EB00FF; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 11px; resize: none; outline: none; margin-bottom: 15px; }
+        button { background: #EB00FF; color: #fff; border: none; padding: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: #D500E6; }
+        .status { font-size: 10px; color: #666; margin-top: 10px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <h2>Expert Engine v2.0 Core</h2>
+    <textarea id="jsonInput" placeholder="Paste data here..."></textarea>
+    <button id="importBtn">Build Master Design</button>
+    <div class="status">
+        <span id="loadText">Ready to process</span>
+        <span>Adisa Engine</span>
+    </div>
+
+    <script>
+        document.getElementById('importBtn').onclick = async () => {
+            const jsonText = document.getElementById('jsonInput').value;
+            const status = document.getElementById('loadText');
+            
+            try {
+                const data = JSON.parse(jsonText);
+                status.innerText = 'Transmitting to Figma CPU...';
+                
+                // Directly pass data. V8 handles images correctly inside Figma and Capture now.
+                parent.postMessage({ pluginMessage: { type: 'import', data } }, '*');
+            } catch (e) {
+                alert('Engine Error: ' + e.message);
+            }
+        };
+
+        window.onmessage = (event) => {
+            if (event.data.pluginMessage.type === 'success') {
+                document.getElementById('jsonInput').value = '';
+                document.getElementById('loadText').innerText = 'Reconstruction complete! 💎';
+            }
+        }
+    </script>
+</body>
+</html>
