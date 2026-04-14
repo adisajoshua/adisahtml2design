@@ -9,14 +9,14 @@ figma.ui.onmessage = async (msg) => {
       // 1. ISOLATED DESKTOP PLACEMENT (V2.0 Anchor)
       const importContainer = figma.createFrame();
       importContainer.name = "🚀 Adisa Master Desktop View";
-      importContainer.fills = [];
       importContainer.layoutMode = "VERTICAL";
       importContainer.layoutSizingHorizontal = "FIXED";
       importContainer.layoutSizingVertical = "HUG";
       importContainer.resize(1440, 100);
+      importContainer.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // Default white canvas
       
       const v = figma.viewport.bounds;
-      importContainer.x = v.x + (v.width/2);
+      importContainer.x = v.x + (v.width/2) - 720;
       importContainer.y = v.y + 100;
 
       // 2. RECURSIVE BUILD
@@ -69,7 +69,10 @@ async function createNode(data: any): Promise<SceneNode | null> {
     }
 
     if (node && 'children' in node && data.children) {
-      for (const childData of data.children) {
+      // Sort children by z-index to maintain stacking context
+      const sortedChildren = [...data.children].sort((a: any, b: any) => (a.zIndex || 0) - (b.zIndex || 0));
+      
+      for (const childData of sortedChildren) {
         const childNode = await createNode(childData);
         if (childNode) {
           (node as FrameNode).appendChild(childNode);
@@ -86,10 +89,10 @@ async function createNode(data: any): Promise<SceneNode | null> {
 async function applyExpertStyles(node: any, data: any) {
   // Absolute vs Relative Targeting
   if (data.layoutPositioning === 'ABSOLUTE') {
-    node.layoutPositioning = 'ABSOLUTE';
-    if (data.x !== undefined) node.x = data.x;
-    if (data.y !== undefined) node.y = data.y;
+    try { node.layoutPositioning = 'ABSOLUTE'; } catch(e){}
   }
+  if (data.x !== undefined) node.x = data.x;
+  if (data.y !== undefined) node.y = data.y;
 
   // Dimension & Sizing
   if (data.width && data.height) {
@@ -125,6 +128,8 @@ async function applyExpertStyles(node: any, data: any) {
      if (data.strokeWeight) node.strokeWeight = data.strokeWeight;
   }
 
+  if (data.effects) node.effects = data.effects;
+  if (data.clipsContent !== undefined && 'clipsContent' in node) node.clipsContent = data.clipsContent;
   if (data.cornerRadius) node.cornerRadius = data.cornerRadius;
   if (data.opacity !== undefined) node.opacity = data.opacity;
   if (data.name) node.name = data.name;
@@ -161,6 +166,7 @@ async function applyTextStyles(node: TextNode, data: any) {
   }
   
   node.characters = data.characters || "";
+  node.textAutoResize = "WIDTH_AND_HEIGHT";
   node.fontSize = data.fontSize || 16;
   if (data.textAlignHorizontal) node.textAlignHorizontal = data.textAlignHorizontal;
   if (data.letterSpacing) node.letterSpacing = data.letterSpacing;

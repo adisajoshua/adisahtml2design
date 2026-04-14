@@ -1,295 +1,189 @@
 /**
- * ADISA EXPERT ENGINE (V2.1 - The Veteran Builder Core)
- * A deterministic physics engine for bridging DOM logic to Figma AutoLayout.
- * With absolute Sandbox & SVG Resilience.
+ * ADISA "ABSOLUTE TRUTH" (V9.0)
+ * Deterministic pixel-perfect rendering with Aggressive Wrapper Pruning.
+ * No Auto-Layout.
  */
 
 (async () => {
     try {
-        console.log("🚀 Adisa v2.1: Master Architectural Core Booting...");
+        console.log("🚀 Adisa v9.0: ABSOLUTE TRUTH BOOTING...");
 
         const oldStatus = document.getElementById('adisa-status');
         if (oldStatus) oldStatus.remove();
 
         const style = document.createElement('style');
-        style.type = 'text/css';
-        style.innerHTML = `
-            .adisa-highlight { outline: 3px solid #00ff88 !important; outline-offset: -3px !important; cursor: crosshair !important; transition: outline 0.05s ease; }
-            #adisa-status { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #00ff88; padding: 12px 24px; border-radius: 4px; font-weight: bold; z-index: 9999999; box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: none; font-family: 'Inter', sans-serif; border-bottom: 3px solid #00ff88; text-transform: uppercase; letter-spacing: 1px; }
+        style.type = 'text/css'; style.innerHTML = `
+            .adisa-highlight { outline: 3px solid #ff0088 !important; outline-offset: -3px !important; z-index: 9999999; cursor: crosshair; }
+            #adisa-status { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #ff0088; padding: 12px 24px; border-radius: 4px; font-weight: bold; z-index: 9999999; box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: none; font-family: sans-serif; border-bottom: 3px solid #ff0088; text-transform: uppercase; }
         `;
-        
-        // Resilience against isolated iframes (like about:srcdoc) which might not have a document.head
-        const targetHead = document.head || document.documentElement || document.body;
-        targetHead.appendChild(style);
+        document.head.appendChild(style);
 
         const status = document.createElement('div');
         status.id = 'adisa-status';
-        status.innerText = '🎯 V2.1 ENGINE READY: CLICK TO CAPTURE TARGET';
+        status.innerText = '🎯 V9.0 (ABSOLUTE PRUNER) READY: CLICK TO CAPTURE';
         document.body.appendChild(status);
 
         function rgbToFigma(rgbString) {
-            if (!rgbString || rgbString === 'transparent' || rgbString === 'rgba(0, 0, 0, 0)') return null;
-            if (rgbString.includes('rgba') && rgbString.split(',').length === 4) {
-                const alpha = parseFloat(rgbString.split(',')[3]);
-                if (alpha === 0) return null;
-            }
+            if (!rgbString || rgbString === 'transparent' || rgbString.includes('rgba(0, 0, 0, 0)') || rgbString === 'none') return null;
             const match = rgbString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
             if (!match) return null;
-            return [{ type: 'SOLID', color: { r: match[1]/255, g: match[2]/255, b: match[3]/255 }, opacity: match[4] !== undefined ? parseFloat(match[4]) : 1 }];
+            return { type: 'SOLID', color: { r: match[1]/255, g: match[2]/255, b: match[3]/255 }, opacity: match[4] !== undefined ? parseFloat(match[4]) : 1 };
         }
 
-        async function encodeImageElement(el) {
-            return new Promise((resolve) => {
-                try {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = el.naturalWidth || el.width || 100;
-                    canvas.height = el.naturalHeight || el.height || 100;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(el, 0, 0);
-                    resolve(canvas.toDataURL("image/png"));
-                } catch (e) { resolve(null); }
-            });
+        function hasVisualData(style, tagName) {
+            if (['SVG', 'IMG', 'PICTURE', 'CANVAS', 'VIDEO'].includes(tagName)) return true;
+            
+            const bg = rgbToFigma(style.backgroundColor);
+            if (bg && bg.opacity > 0) return true;
+            
+            const borderW = parseFloat(style.borderWidth) || parseFloat(style.borderTopWidth);
+            const borderC = rgbToFigma(style.borderColor);
+            if (borderW > 0 && borderC && borderC.opacity > 0) return true;
+
+            if (style.boxShadow && style.boxShadow !== 'none') return true;
+            if (style.overflow === 'hidden' || style.overflow === 'scroll') return true; // Keep clipping boundaries
+
+            return false;
         }
 
-        async function encodeImageUrl(url) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.crossOrigin = 'Anonymous';
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width; canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL('image/png'));
-                };
-                img.onerror = () => resolve(null);
-                img.src = url;
-            });
-        }
+        async function processNode(el, referenceRect) {
+            if (el.nodeType === 3) {
+                const text = el.textContent.trim();
+                if (!text) return [];
+                
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                const rect = range.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) return [];
 
-        function parseTypography(el, style) {
-            let ls = 0;
-            if (style.letterSpacing && style.letterSpacing !== 'normal') {
-                ls = parseFloat(style.letterSpacing);
-                if (style.letterSpacing.includes('em')) ls = ls * (parseFloat(style.fontSize) || 16);
+                const style = window.getComputedStyle(el.parentElement);
+                let fw = parseInt(style.fontWeight) || 400;
+                const fill = rgbToFigma(style.color) || { type: 'SOLID', color: {r:0,g:0,b:0} };
+
+                let lh = parseFloat(style.lineHeight);
+                if (isNaN(lh)) lh = (parseFloat(style.fontSize) || 16) * 1.2;
+
+                return [{
+                    type: 'TEXT',
+                    characters: el.textContent.replace(/\s+/g, ' '),
+                    x: rect.left - referenceRect.left,
+                    y: rect.top - referenceRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    fontSize: parseFloat(style.fontSize) || 16,
+                    lineHeight: { value: lh, unit: 'PIXELS' },
+                    fontFamily: style.fontFamily.split(',')[0].replace(/['"]/g, '').trim(),
+                    fontStyle: fw >= 700 ? 'Bold' : (fw >= 500 ? 'Medium' : 'Regular'),
+                    fills: [fill],
+                    textAlignHorizontal: (style.textAlign || 'left').toUpperCase().replace('START','LEFT').replace('END','RIGHT'),
+                    layoutPositioning: 'ABSOLUTE',
+                    layoutMode: 'NONE' // Enforce absolute freedom
+                }];
             }
 
-            let lh = parseFloat(style.lineHeight);
-            if (isNaN(lh)) lh = (parseFloat(style.fontSize) || 16) * 1.25;
-
-            let fw = parseInt(style.fontWeight) || 400;
-            if (style.fontWeight === 'bold') fw = 700;
-
-            let fontStyle = 'Regular';
-            if (fw >= 700) fontStyle = 'Bold';
-            else if (fw >= 600) fontStyle = 'SemiBold';
-            else if (fw >= 500) fontStyle = 'Medium';
-            else if (fw <= 300) fontStyle = 'Light';
-
-            return {
-                fontSize: parseFloat(style.fontSize) || 16,
-                fontFamily: (style.fontFamily || 'Inter').split(',')[0].replace(/['"]/g, ''),
-                fontStyle: fontStyle,
-                letterSpacing: ls,
-                lineHeight: lh,
-                color: rgbToFigma(style.color) || [],
-                align: (style.textAlign || 'left').toUpperCase().replace('START', 'LEFT').replace('END', 'RIGHT')
-            };
-        }
-
-        async function elementToFigma(el, isRoot = false) {
-            const rect = el.getBoundingClientRect();
+            if (el.nodeType !== 1) return [];
+            
             const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return [];
             
-            if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0 || style.opacity === '0') return null;
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return [];
 
-            // FIX: Robust className extraction (Resilient to SVGs and MathML)
-            const cls = typeof el.className === 'string' ? el.className : (el.className && el.className.baseVal ? el.className.baseVal : '');
-            const friendlyName = (el.tagName || 'div').toLowerCase() + (cls ? '.' + cls.split(' ')[0] : (el.id ? '#' + el.id : ''));
+            const tagName = el.tagName.toUpperCase();
+
+            // Handle pure Vector SVGs
+            if (tagName === 'SVG') {
+                return [{
+                    type: 'SVG',
+                    svg: el.outerHTML,
+                    x: rect.left - referenceRect.left,
+                    y: rect.top - referenceRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    layoutPositioning: 'ABSOLUTE'
+                }];
+            }
             
-            const node = {
-                id: friendlyName,
-                name: isRoot ? '🚀 Adisa V2 Master Container' : friendlyName,
-                width: rect.width,
-                height: rect.height,
-                opacity: parseFloat(style.opacity) || 1,
-                cornerRadius: parseFloat(style.borderRadius) || 0,
-                fills: [],
-                strokes: []
-            };
+            // Core Logic: Is it Visual or a Phantom Wrapper?
+            const isVisual = hasVisualData(style, tagName);
+            let createdFrames = [];
 
-            if (el.tagName && el.tagName.toUpperCase() === 'SVG') {
-                node.type = 'SVG'; node.svg = el.outerHTML; return node;
-            }
+            if (isVisual || el.id === 'root' || tagName === 'BODY') {
+                // IT HAS VISUALS: CREATE A FIGMA BOX
+                const fills = [];
+                const bg = rgbToFigma(style.backgroundColor);
+                if (bg) fills.push(bg);
 
-            if (style.position === 'absolute' || style.position === 'fixed') {
-                node.layoutPositioning = 'ABSOLUTE';
-            }
+                const strokes = [];
+                const borderW = parseFloat(style.borderWidth) || parseFloat(style.borderTopWidth);
+                const borderC = rgbToFigma(style.borderColor);
+                if (borderW > 0 && borderC) strokes.push(borderC);
 
-            // Apply Design Variables
-            const bgFill = rgbToFigma(style.backgroundColor);
-            if (bgFill) node.fills.push(...bgFill);
+                const node = {
+                    type: 'FRAME',
+                    name: tagName + (typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : ''),
+                    x: rect.left - referenceRect.left,
+                    y: rect.top - referenceRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    fills: fills,
+                    strokes: strokes,
+                    strokeWeight: borderW || 0,
+                    cornerRadius: parseFloat(style.borderRadius) || 0,
+                    layoutMode: 'NONE', // V9.0: Kill all Auto Layout
+                    layoutPositioning: 'ABSOLUTE',
+                    clipsContent: style.overflow === 'hidden' || style.overflow === 'scroll',
+                    children: [] 
+                };
 
-            if (style.borderWidth !== '0px' && style.borderStyle !== 'none') {
-                const strokeColor = rgbToFigma(style.borderColor);
-                if (strokeColor) { node.strokes.push(...strokeColor); node.strokeWeight = parseFloat(style.borderTopWidth) || 1; }
-            }
-
-            // Asset Pipeline 
-            if (el.tagName === 'IMG' && el.src) {
-                const base64 = await encodeImageElement(el);
-                if (base64) node.fills.push({ type: 'IMAGE_BASE64', data: base64.split(',')[1] });
-            } else if (style.backgroundImage && style.backgroundImage !== 'none' && style.backgroundImage.includes('url')) {
-                const urlMatch = style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
-                if (urlMatch && urlMatch[1]) {
-                    const base64 = await encodeImageUrl(urlMatch[1]);
-                    if (base64) node.fills.push({ type: 'IMAGE_BASE64', data: base64.split(',')[1] });
+                // The new reference rect for children is THIS node's rect.
+                for (const child of el.childNodes) {
+                    const mappedChildren = await processNode(child, rect);
+                    node.children.push(...mappedChildren);
                 }
-            }
 
-            const isPureTextNode = Array.from(el.childNodes).length > 0 && Array.from(el.childNodes).every(n => n.nodeType === 3 || (n.nodeType === 1 && ['BR', 'STRONG', 'B', 'EM', 'I', 'SPAN'].includes(n.tagName)));
-            const textContent = el.innerText || el.textContent || '';
-            const trimmedText = textContent.trim();
-
-            // Safe Text Flattening
-            if (isPureTextNode && trimmedText.length > 0) {
-                const typo = parseTypography(el, style);
-                node.type = 'TEXT';
-                node.characters = trimmedText;
-                node.fontSize = typo.fontSize;
-                node.fontName = { family: typo.fontFamily, style: typo.fontStyle };
-                node.fills = typo.color;
-                node.textAlignHorizontal = typo.align;
-                node.letterSpacing = { value: typo.letterSpacing, unit: 'PIXELS' };
-                node.lineHeight = { value: typo.lineHeight, unit: 'PIXELS' };
-                node.layoutSizingHorizontal = 'FILL';
-                return node;
+                createdFrames.push(node);
             } else {
-                // Container Layout Mathematics
-                node.type = 'FRAME';
-                node.layoutSizingHorizontal = 'FIXED';
-                node.layoutSizingVertical = 'FIXED';
-                
-                node.paddingLeft = parseFloat(style.paddingLeft) || 0; node.paddingRight = parseFloat(style.paddingRight) || 0;
-                node.paddingTop = parseFloat(style.paddingTop) || 0; node.paddingBottom = parseFloat(style.paddingBottom) || 0;
-
-                const isFlex = style.display === 'flex';
-                const isGrid = style.display === 'grid';
-                const alignMap = { 'flex-start': 'MIN', 'center': 'CENTER', 'flex-end': 'MAX', 'space-between': 'SPACE_BETWEEN' };
-
-                let inferredGap = parseFloat(style.gap) || 0;
-                if (!isFlex && !isGrid && el.children.length > 1) {
-                    const childMargins = Array.from(el.children).map(c => parseFloat(window.getComputedStyle(c).marginBottom) || 0);
-                    inferredGap = Math.max(...childMargins, 0);
-                }
-                node.itemSpacing = inferredGap;
-
-                if (isFlex) {
-                    node.layoutMode = style.flexDirection.includes('row') ? 'HORIZONTAL' : 'VERTICAL';
-                    if (style.flexWrap === 'wrap') node.layoutWrap = 'WRAP';
-                    node.primaryAxisAlignItems = alignMap[style.justifyContent] || 'MIN';
-                    node.counterAxisAlignItems = alignMap[style.alignItems] || 'MIN';
-                } else if (isGrid) {
-                    node.layoutMode = 'HORIZONTAL'; 
-                    node.layoutWrap = 'WRAP';
-                    node.primaryAxisAlignItems = alignMap[style.justifyContent] || 'MIN';
-                } else {
-                    node.layoutMode = 'VERTICAL'; 
-                    node.primaryAxisAlignItems = 'MIN';
-                    node.counterAxisAlignItems = 'MIN';
-                }
-
-                const parentStyle = el.parentElement ? window.getComputedStyle(el.parentElement) : null;
-                // Grids enforce FILL so that wrap children map out efficiently
-                if (parentStyle && parentStyle.display === 'grid') {
-                    node.layoutSizingHorizontal = 'FIXED';
-                } else if (style.flexGrow && parseFloat(style.flexGrow) > 0) {
-                    node.layoutSizingHorizontal = 'FILL';
-                } else if (style.width === '100%' || style.display === 'block' || isGrid) {
-                    node.layoutSizingHorizontal = 'FILL';
-                }
-                
-                if (style.height === 'auto') node.layoutSizingVertical = 'HUG';
-
-                node.children = [];
-
-                ['::before', '::after'].forEach(pseudo => {
-                    const ps = window.getComputedStyle(el, pseudo);
-                    if (ps.content && ps.content !== 'none' && ps.content !== 'normal') {
-                        const c = ps.content.replace(/^["']|["']$/g, '');
-                        if (c) {
-                            const t = parseTypography(el, ps);
-                            node.children.push({
-                                type: 'TEXT', characters: c, fontSize: t.fontSize, fontName: { family: t.fontFamily, style: t.fontStyle }, fills: t.color, layoutSizingHorizontal: 'HUG'
-                            });
-                        }
-                    }
-                });
-
-                for (const child of el.children) {
-                    const childNode = await elementToFigma(child);
-                    if (childNode) node.children.push(childNode);
+                // PHANTOM WRAPPER: DO NOT create a frame! 
+                // Pass the CURRENT referenceRect down to children.
+                for (const child of el.childNodes) {
+                    const mappedChildren = await processNode(child, referenceRect);
+                    createdFrames.push(...mappedChildren);
                 }
             }
 
-            return node;
+            return createdFrames;
         }
 
-        let lastEl = null;
-        const overHandler = (e) => { 
-            if (lastEl) lastEl.classList.remove('adisa-highlight'); 
-            if (e.target && e.target.classList) {
-                 e.target.classList.add('adisa-highlight'); 
-                 lastEl = e.target; 
-            }
-        };
-        const outHandler = (e) => { 
-            if (e.target && e.target.classList) e.target.classList.remove('adisa-highlight'); 
-        };
+        // Restore Highlighting
+        document.addEventListener('mouseover', (e) => { if (e.target.classList) e.target.classList.add('adisa-highlight'); });
+        document.addEventListener('mouseout', (e) => { if (e.target.classList) e.target.classList.remove('adisa-highlight'); });
 
-        const clickHandler = async (e) => {
+        document.addEventListener('click', async (e) => {
             e.preventDefault(); e.stopPropagation();
-            status.innerText = '⚡ V2.2 CAPTURING DOM PHYSICS ⚡';
+            status.innerText = '⚡ PRUNING & MAPPING DOM...';
             
-            const target = e.target; 
-            if (target && target.classList) target.classList.remove('adisa-highlight');
+            // Capture root element
+            const rootRect = e.target.getBoundingClientRect();
+            const payload = await processNode(e.target, { left: 0, top: 0, width: 0, height: 0 }); // Global absolute wrapper
+            
+            // Wrapping everything into one master frame
+            const masterNode = {
+                type: 'FRAME',
+                name: 'AppRoot',
+                width: rootRect.width,
+                height: rootRect.height,
+                x: 0, y: 0,
+                fills: [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }],
+                layoutMode: 'NONE',
+                children: payload
+            };
 
-            try {
-                const figmaData = await elementToFigma(target, true);
-                const jsonStr = JSON.stringify(figmaData);
-                
-                // GUARANTEED SANDBOX EXTRACTION: Print directly to console
-                console.log('%c🚀 ADISA CAPTURE DATA BELOW 🚀', 'color: #00ff88; font-weight: bold; font-size: 14px;');
-                console.log(jsonStr);
+            const txt = document.createElement('textarea');
+            txt.value = JSON.stringify(masterNode); document.body.appendChild(txt);
+            txt.select(); document.execCommand('copy'); document.body.removeChild(txt);
+            status.innerText = '✅ V9.0 ABSOLUTE DATA COPIED!';
+        }, { once: true });
 
-                // Attempt clipboard copy
-                try {
-                    const txt = document.createElement('textarea');
-                    txt.value = jsonStr; document.body.appendChild(txt);
-                    txt.select(); document.execCommand('copy'); document.body.removeChild(txt);
-                } catch(e) {}
-                
-                status.innerText = '✅ COPIED! (Also printed in Console)';
-                status.style.background = '#00ff88';
-                status.style.color = '#000';
-                
-                setTimeout(() => { if (status.parentNode) status.parentNode.removeChild(status); }, 4000);
-            } catch (err) {
-                console.error(err); status.innerText = '❌ ERROR: CHECK CONSOLE';
-            }
-
-            document.removeEventListener('mouseover', overHandler);
-            document.removeEventListener('mouseout', outHandler);
-            document.removeEventListener('click', clickHandler, true);
-            if (lastEl && lastEl.classList) lastEl.classList.remove('adisa-highlight');
-        };
-
-        document.addEventListener('mouseover', overHandler);
-        document.addEventListener('mouseout', outHandler);
-        document.addEventListener('click', clickHandler, true);
-
-    } catch(err) {
-        console.error("Adisa Engine failed to start:", err);
-        alert("Adisa Boot Error: " + err.message);
-    }
+    } catch(err) { console.error(err); }
 })();

@@ -2,43 +2,173 @@
 <html>
 <head>
     <style>
-        body { background: #111; color: #fff; font-family: 'Inter', sans-serif; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; margin: 0; }
-        h2 { font-size: 13px; color: #EB00FF; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
-        textarea { flex-grow: 1; background: #222; border: 1px solid #333; color: #EB00FF; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 11px; resize: none; outline: none; margin-bottom: 15px; }
-        button { background: #EB00FF; color: #fff; border: none; padding: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
-        button:hover { background: #D500E6; }
-        .status { font-size: 10px; color: #666; margin-top: 10px; display: flex; justify-content: space-between; }
+        :root {
+            --bg: hsl(230, 20%, 5%);
+            --surface: hsl(230, 20%, 10%);
+            --accent: hsl(282, 100%, 50%);
+            --accent-glow: hsla(282, 100%, 50%, 0.3);
+            --text: hsl(0, 0%, 100%);
+            --text-dim: hsl(230, 10%, 60%);
+            --radius: 8px;
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: var(--font); 
+            padding: 24px; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            overflow: hidden;
+            border: 1px solid hsla(0, 0%, 100%, 0.05);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #5000FF);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 18px;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        h1 { font-size: 14px; margin: 0; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 800; }
+        p { font-size: 11px; color: var(--text-dim); margin: 4px 0 0 0; }
+
+        .input-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        textarea { 
+            flex-grow: 1; 
+            background: var(--surface); 
+            border: 1px solid hsla(0, 0%, 100%, 0.1); 
+            color: var(--text); 
+            border-radius: var(--radius); 
+            padding: 16px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 11px; 
+            resize: none; 
+            outline: none; 
+            transition: all 0.2s ease;
+        }
+
+        textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+
+        button { 
+            background: var(--accent); 
+            color: #fff; 
+            border: none; 
+            padding: 16px; 
+            border-radius: var(--radius); 
+            font-weight: 700; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            font-size: 12px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px var(--accent-glow); background: hsl(282, 100%, 55%); }
+        button:active { transform: translateY(0); }
+
+        .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid hsla(0, 0%, 100%, 0.05);
+        }
+
+        .version { font-size: 10px; color: var(--text-dim); font-weight: 600; }
+        .status-dot { width: 6px; height: 6px; background: #00ff88; border-radius: 50%; box-shadow: 0 0 10px #00ff88; }
+        .status-text { font-size: 10px; font-weight: 600; color: #00ff88; margin-left: 6px; }
+
+        /* Animations */
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .processing { animation: pulse 1s infinite ease-in-out; }
     </style>
 </head>
 <body>
-    <h2>Expert Engine v2.0 Core</h2>
-    <textarea id="jsonInput" placeholder="Paste data here..."></textarea>
-    <button id="importBtn">Build Master Design</button>
-    <div class="status">
-        <span id="loadText">Ready to process</span>
-        <span>Adisa Engine</span>
+    <div class="header">
+        <div class="logo">A</div>
+        <div>
+            <h1>Adisa Expert</h1>
+            <p>High-Fidelity HTML Translator</p>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <textarea id="jsonInput" placeholder="Paste Adisa Capture Data JSON here..."></textarea>
+        <button id="importBtn">Reconstruct Design</button>
+    </div>
+
+    <div class="footer">
+        <div style="display: flex; align-items: center;">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="loadText" class="status-text">Engine Online</span>
+        </div>
+        <div class="version">V8.0 PHYSICAL TRUTH</div>
     </div>
 
     <script>
-        document.getElementById('importBtn').onclick = async () => {
-            const jsonText = document.getElementById('jsonInput').value;
-            const status = document.getElementById('loadText');
+        const importBtn = document.getElementById('importBtn');
+        const statusText = document.getElementById('loadText');
+        const statusDot = document.getElementById('statusDot');
+        const jsonInput = document.getElementById('jsonInput');
+
+        importBtn.onclick = async () => {
+            const jsonText = jsonInput.value.trim();
+            if (!jsonText) return;
             
             try {
                 const data = JSON.parse(jsonText);
-                status.innerText = 'Transmitting to Figma CPU...';
+                statusText.innerText = 'Transmitting...';
+                statusText.classList.add('processing');
+                importBtn.innerText = 'Processing...';
+                importBtn.disabled = true;
                 
-                // Directly pass data. V8 handles images correctly inside Figma and Capture now.
                 parent.postMessage({ pluginMessage: { type: 'import', data } }, '*');
             } catch (e) {
                 alert('Engine Error: ' + e.message);
+                statusText.innerText = 'Parse Error';
+                statusText.style.color = '#ff4444';
+                statusDot.style.background = '#ff4444';
             }
         };
 
         window.onmessage = (event) => {
             if (event.data.pluginMessage.type === 'success') {
-                document.getElementById('jsonInput').value = '';
-                document.getElementById('loadText').innerText = 'Reconstruction complete! 💎';
+                jsonInput.value = '';
+                statusText.innerText = 'Reconstruction Complete';
+                statusText.classList.remove('processing');
+                importBtn.innerText = 'Reconstruct Design';
+                importBtn.disabled = false;
+                setTimeout(() => {
+                    statusText.innerText = 'Engine Online';
+                }, 3000);
             }
         }
     </script>
